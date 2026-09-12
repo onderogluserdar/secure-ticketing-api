@@ -85,6 +85,17 @@ public class Event {
         return capacity - activeReservedSeats;
     }
 
+    public void ensureCanAccommodate(int requestedSeats, int activeReservedSeats) {
+        if (!published) {
+            throw new BusinessException(ErrorCode.EVENT_NOT_PUBLISHED, "event %s is not published".formatted(id));
+        }
+        if (activeReservedSeats + requestedSeats > capacity) {
+            throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_CAPACITY,
+                    "only %d of %d seats remain".formatted(remainingSeats(activeReservedSeats), capacity));
+        }
+    }
+
     private void applyDetails(String title, String venue, Instant startsAt, Instant endsAt, int capacity) {
         if (capacity < 1) {
             throw new IllegalArgumentException("capacity must be at least 1");

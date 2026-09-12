@@ -20,6 +20,7 @@ class SecurityConfig {
 
     private static final String ADMIN = Role.ADMIN.name();
     private static final String ORGANIZER = Role.ORGANIZER.name();
+    private static final String CUSTOMER = Role.CUSTOMER.name();
 
     @Bean
     SecurityFilterChain securityFilterChain(
@@ -43,6 +44,10 @@ class SecurityConfig {
                         .hasAnyRole(ORGANIZER, ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/events/*/publish")
                         .hasAnyRole(ORGANIZER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/events/*/reservations")
+                        .hasAnyRole(CUSTOMER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/reservations/*/confirm", "/api/reservations/*/cancel")
+                        .hasAnyRole(CUSTOMER, ADMIN)
                         .anyRequest()
                         .authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
