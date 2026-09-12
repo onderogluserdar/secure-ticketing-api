@@ -11,7 +11,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 
 import com.onderogluserdar.ticketing.user.Role;
 
@@ -24,7 +26,11 @@ class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, @Qualifier("accessTokenDecoder") JwtDecoder accessTokenDecoder) throws Exception {
+            HttpSecurity http,
+            @Qualifier("accessTokenDecoder") JwtDecoder accessTokenDecoder,
+            AuthenticationEntryPoint authenticationEntryPoint,
+            AccessDeniedHandler accessDeniedHandler)
+            throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
@@ -50,8 +56,12 @@ class SecurityConfig {
                         .hasAnyRole(CUSTOMER, ADMIN)
                         .anyRequest()
                         .authenticated())
-                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                        jwt -> jwt.decoder(accessTokenDecoder).jwtAuthenticationConverter(rolesFromAccessToken())))
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                        .jwt(jwt -> jwt.decoder(accessTokenDecoder).jwtAuthenticationConverter(rolesFromAccessToken())))
+                .exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .build();
     }
 
