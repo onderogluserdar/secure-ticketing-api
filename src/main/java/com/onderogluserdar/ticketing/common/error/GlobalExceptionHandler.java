@@ -88,7 +88,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     EVENT_NOT_PUBLISHED,
                     CAPACITY_BELOW_RESERVED,
                     INSUFFICIENT_CAPACITY,
-                    INVALID_RESERVATION_STATE -> HttpStatus.CONFLICT;
+                    INVALID_RESERVATION_STATE,
+                    IDEMPOTENCY_KEY_CONFLICT -> HttpStatus.CONFLICT;
         };
     }
 }

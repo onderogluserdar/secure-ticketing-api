@@ -4,13 +4,12 @@ import java.util.UUID;
 
 import jakarta.validation.Valid;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.onderogluserdar.ticketing.reservation.dto.ReservationRequest;
@@ -21,20 +20,22 @@ import com.onderogluserdar.ticketing.security.CurrentUser;
 class ReservationController {
 
     private final ReservationService reservationService;
+    private final IdempotentReservationService idempotentReservations;
 
-    ReservationController(ReservationService reservationService) {
+    ReservationController(ReservationService reservationService, IdempotentReservationService idempotentReservations) {
         this.reservationService = reservationService;
+        this.idempotentReservations = idempotentReservations;
     }
 
     @PostMapping("/api/events/{eventId}/reservations")
-    @ResponseStatus(HttpStatus.CREATED)
-    ReservationResponse reserve(
+    ResponseEntity<ReservationResponse> reserve(
             @PathVariable UUID eventId,
             @Valid @RequestBody ReservationRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             Authentication authentication) {
-        return ReservationResponse.from(
-                reservationService.reserve(eventId, request.seats(), CurrentUser.from(authentication)));
+        IdempotentReservationService.Outcome outcome = idempotentReservations.reserve(
+                idempotencyKey, eventId, request.seats(), CurrentUser.from(authentication));
+        return ResponseEntity.status(outcome.status()).body(outcome.response());
     }
 
     @PostMapping("/api/reservations/{id}/confirm")
