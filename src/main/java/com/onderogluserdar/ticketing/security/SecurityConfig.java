@@ -13,8 +13,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.onderogluserdar.ticketing.user.Role;
+
 @Configuration
 class SecurityConfig {
+
+    private static final String ADMIN = Role.ADMIN.name();
+    private static final String ORGANIZER = Role.ORGANIZER.name();
 
     @Bean
     SecurityFilterChain securityFilterChain(
@@ -30,6 +35,12 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/public")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/events")
+                        .hasAnyRole(ORGANIZER, ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/events/*")
+                        .hasAnyRole(ORGANIZER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/events/*/publish")
+                        .hasAnyRole(ORGANIZER, ADMIN)
                         .anyRequest()
                         .authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
