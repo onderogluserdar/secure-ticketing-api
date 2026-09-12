@@ -21,6 +21,7 @@ class GlobalExceptionHandler {
             case INVALID_CREDENTIALS, INVALID_TOKEN -> HttpStatus.UNAUTHORIZED;
             case EVENT_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case EVENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case EMAIL_ALREADY_REGISTERED,
                     EVENT_ALREADY_PUBLISHED,
                     CAPACITY_BELOW_RESERVED,

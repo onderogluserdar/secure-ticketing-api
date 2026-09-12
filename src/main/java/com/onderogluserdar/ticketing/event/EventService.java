@@ -1,7 +1,10 @@
 package com.onderogluserdar.ticketing.event;
 
+import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +60,31 @@ public class EventService {
         requireManageable(event, caller);
         event.publish();
         return event;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Event> findEvents(UUID requestedOwnerId, CurrentUser caller, Pageable pageable) {
+        if (caller.isAdmin()) {
+            return requestedOwnerId == null
+                    ? events.findAll(pageable)
+                    : events.findAllByOwnerId(requestedOwnerId, pageable);
+        }
+        if (requestedOwnerId != null && !requestedOwnerId.equals(caller.id())) {
+            throw new BusinessException(ErrorCode.EVENT_ACCESS_DENIED, "an organizer may only list their own events");
+        }
+        return events.findAllByOwnerId(caller.id(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Event> discover(Instant from, Instant to, String query, Pageable pageable) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "from must not be after to");
+        }
+        return events.findPublished(from, to, blankToNull(query), pageable);
+    }
+
+    private static String blankToNull(String query) {
+        return query == null || query.isBlank() ? null : query.trim();
     }
 
     private static void requireManageable(Event event, CurrentUser caller) {

@@ -37,6 +37,8 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events")
                         .hasAnyRole(ORGANIZER, ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/events")
+                        .hasAnyRole(ORGANIZER, ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/events/*")
                         .hasAnyRole(ORGANIZER, ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/events/*/publish")
