@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter xmlns="https://github.com/spotbugs/filter/3.1.0">
+
+    <!--
+        SPRING_ENDPOINT is informational: FindSecBugs reports every @RestController so a reviewer
+        can find the attack surface. It is not a defect and would fire on every controller.
+    -->
+    <Match>
+        <Bug pattern="SPRING_ENDPOINT"/>
+    </Match>
+
+</FindBugsFilter>

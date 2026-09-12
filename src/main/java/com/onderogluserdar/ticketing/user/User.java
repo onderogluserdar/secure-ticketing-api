@@ -58,7 +58,7 @@ public class User {
         return user;
     }
 
-    private static String normalizeEmail(String email) {
+    public static String normalizeEmail(String email) {
         return requireText(email, "email").trim().toLowerCase(Locale.ROOT);
     }
 
