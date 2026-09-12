@@ -2,5 +2,6 @@ package com.onderogluserdar.ticketing.common.error;
 
 public enum ErrorCode {
     EVENT_ALREADY_PUBLISHED,
-    CAPACITY_BELOW_RESERVED
+    CAPACITY_BELOW_RESERVED,
+    INVALID_RESERVATION_STATE
 }
