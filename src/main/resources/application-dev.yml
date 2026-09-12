@@ -1,0 +1,4 @@
+ticketing:
+  dev:
+    # Development profile only. Seeds admin/organizer/customer accounts for local use.
+    seed-password: development-only-password

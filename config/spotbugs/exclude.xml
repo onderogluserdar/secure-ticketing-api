@@ -9,4 +9,22 @@
         <Bug pattern="SPRING_ENDPOINT"/>
     </Match>
 
+    <!--
+        CSRF is deliberately disabled. Authentication is an explicit bearer token that a browser
+        never attaches on its own, sessions are STATELESS and no cookie is ever issued, so there is
+        no ambient credential for a cross-site request to abuse. See docs/security.md.
+    -->
+    <Match>
+        <Class name="com.onderogluserdar.ticketing.security.SecurityConfig"/>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+    </Match>
+
+    <!--
+        HttpSecurity.build() declares `throws Exception`, so the bean method cannot narrow it.
+    -->
+    <Match>
+        <Class name="com.onderogluserdar.ticketing.security.SecurityConfig"/>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    </Match>
+
 </FindBugsFilter>
