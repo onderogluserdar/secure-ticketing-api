@@ -10,8 +10,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.onderogluserdar.ticketing.auth.dto.TokenResponse;
 import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
+import com.onderogluserdar.ticketing.security.JwtService;
 import com.onderogluserdar.ticketing.user.Role;
 import com.onderogluserdar.ticketing.user.User;
 import com.onderogluserdar.ticketing.user.UserRepository;
@@ -21,13 +23,15 @@ public class AuthService {
 
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     /** Compared against when no user matches, so an unknown email still costs a BCrypt verify. */
     private final String absentUserHash;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
         this.absentUserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -44,6 +48,26 @@ public class AuthService {
         } catch (DataIntegrityViolationException concurrentRegistration) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_REGISTERED, "email is already registered");
         }
+    }
+
+    @Transactional
+    public TokenResponse login(String email, String rawPassword) {
+        return tokensFor(authenticate(email, rawPassword));
+    }
+
+    @Transactional
+    public TokenResponse refresh(String refreshToken) {
+        UUID userId = jwtService.userIdFromRefreshToken(refreshToken);
+        User user = users.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_TOKEN, "token is not valid"));
+        return tokensFor(user);
+    }
+
+    private TokenResponse tokensFor(User user) {
+        return TokenResponse.bearer(
+                jwtService.issueAccessToken(user),
+                jwtService.issueRefreshToken(user),
+                jwtService.accessTokenSecondsToLive());
     }
 
     @Transactional

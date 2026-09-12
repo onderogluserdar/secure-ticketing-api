@@ -12,3 +12,10 @@ spring:
 
 server:
   port: 0
+
+ticketing:
+  jwt:
+    # Test fixture only
+    secret: test-fixture-signing-key-not-used-outside-tests
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d

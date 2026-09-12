@@ -18,7 +18,7 @@ class GlobalExceptionHandler {
 
     private static HttpStatus statusFor(ErrorCode code) {
         return switch (code) {
-            case INVALID_CREDENTIALS -> HttpStatus.UNAUTHORIZED;
+            case INVALID_CREDENTIALS, INVALID_TOKEN -> HttpStatus.UNAUTHORIZED;
             case EMAIL_ALREADY_REGISTERED,
                     EVENT_ALREADY_PUBLISHED,
                     CAPACITY_BELOW_RESERVED,
