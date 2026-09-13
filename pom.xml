@@ -14,7 +14,7 @@
 
     <groupId>com.onderogluserdar</groupId>
     <artifactId>secure-ticketing-api</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>secure-ticketing-api</name>
     <description>Secure Ticketing and Reservation API</description>
 
