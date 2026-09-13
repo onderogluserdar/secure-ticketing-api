@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.onderogluserdar.ticketing.audit.AuditAction;
+import com.onderogluserdar.ticketing.audit.AuditService;
 import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.event.dto.EventRequest;
@@ -19,21 +21,25 @@ public class EventService {
 
     private final EventRepository events;
     private final ReservationRepository reservations;
+    private final AuditService audit;
 
-    public EventService(EventRepository events, ReservationRepository reservations) {
+    public EventService(EventRepository events, ReservationRepository reservations, AuditService audit) {
         this.events = events;
         this.reservations = reservations;
+        this.audit = audit;
     }
 
     @Transactional
     public Event create(CurrentUser caller, EventRequest request) {
-        return events.save(Event.createDraft(
+        Event created = events.save(Event.createDraft(
                 caller.id(),
                 request.title(),
                 request.venue(),
                 request.startsAt(),
                 request.endsAt(),
                 request.capacity()));
+        audit.record(AuditAction.EVENT_CREATED, caller.id(), "Event", created.getId());
+        return created;
     }
 
     @Transactional
@@ -51,6 +57,7 @@ public class EventService {
                 request.capacity(),
                 reservations.activeSeatsFor(eventId));
 
+        audit.record(AuditAction.EVENT_UPDATED, caller.id(), "Event", eventId);
         return event;
     }
 
@@ -59,6 +66,7 @@ public class EventService {
         Event event = events.findById(eventId).orElseThrow(() -> notFound(eventId));
         requireManageable(event, caller);
         event.publish();
+        audit.record(AuditAction.EVENT_PUBLISHED, caller.id(), "Event", eventId);
         return event;
     }
 

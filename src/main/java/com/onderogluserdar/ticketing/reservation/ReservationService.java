@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.onderogluserdar.ticketing.audit.AuditAction;
+import com.onderogluserdar.ticketing.audit.AuditService;
 import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.event.Event;
@@ -21,10 +23,12 @@ public class ReservationService {
 
     private final ReservationRepository reservations;
     private final EventRepository events;
+    private final AuditService audit;
 
-    public ReservationService(ReservationRepository reservations, EventRepository events) {
+    public ReservationService(ReservationRepository reservations, EventRepository events, AuditService audit) {
         this.reservations = reservations;
         this.events = events;
+        this.audit = audit;
     }
 
     @Transactional
@@ -35,7 +39,9 @@ public class ReservationService {
 
         event.ensureCanAccommodate(seats, reservations.activeSeatsFor(eventId));
 
-        return reservations.save(Reservation.createPending(eventId, caller.id(), seats, Instant.now()));
+        Reservation created = reservations.save(Reservation.createPending(eventId, caller.id(), seats, Instant.now()));
+        audit.record(AuditAction.RESERVATION_CREATED, caller.id(), "Reservation", created.getId());
+        return created;
     }
 
     @Transactional
@@ -43,6 +49,7 @@ public class ReservationService {
         Reservation reservation = lockForStateChange(reservationId);
         requireOwner(reservation, caller);
         reservation.confirm();
+        audit.record(AuditAction.RESERVATION_CONFIRMED, caller.id(), "Reservation", reservationId);
         return reservation;
     }
 
@@ -54,6 +61,7 @@ public class ReservationService {
         lockInventoryOf(reservation.getEventId());
         Reservation locked = lockForStateChange(reservationId);
         locked.cancel();
+        audit.record(AuditAction.RESERVATION_CANCELLED, caller.id(), "Reservation", reservationId);
         return locked;
     }
 

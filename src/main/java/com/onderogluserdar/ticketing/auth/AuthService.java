@@ -10,6 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.onderogluserdar.ticketing.audit.AuditAction;
+import com.onderogluserdar.ticketing.audit.AuditService;
 import com.onderogluserdar.ticketing.auth.dto.TokenResponse;
 import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
@@ -24,14 +26,17 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuditService audit;
 
     /** Compared against when no user matches, so an unknown email still costs a BCrypt verify. */
     private final String absentUserHash;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(
+            UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService, AuditService audit) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.audit = audit;
         this.absentUserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -52,7 +57,15 @@ public class AuthService {
 
     @Transactional
     public TokenResponse login(String email, String rawPassword) {
-        return tokensFor(authenticate(email, rawPassword));
+        User user;
+        try {
+            user = authenticate(email, rawPassword);
+        } catch (BusinessException rejected) {
+            audit.recordSecurityEvent(AuditAction.LOGIN_FAILURE, null);
+            throw rejected;
+        }
+        audit.record(AuditAction.LOGIN_SUCCESS, user.getId(), "User", user.getId());
+        return tokensFor(user);
     }
 
     @Transactional

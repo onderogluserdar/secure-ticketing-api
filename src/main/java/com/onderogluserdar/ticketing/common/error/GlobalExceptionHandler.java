@@ -82,6 +82,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case EVENT_ACCESS_DENIED, RESERVATION_ACCESS_DENIED, ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case EVENT_NOT_FOUND, RESERVATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case VALIDATION_ERROR, INVALID_REQUEST -> HttpStatus.BAD_REQUEST;
+            case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
             case EMAIL_ALREADY_REGISTERED,
                     EVENT_ALREADY_PUBLISHED,

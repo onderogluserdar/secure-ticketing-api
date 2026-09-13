@@ -27,4 +27,23 @@
         <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     </Match>
 
+    <!--
+        User-Agent is spoofable, which is why it is only ever stored as audit metadata and never used
+        to make a decision. Scoped to AuditService so the detector still applies everywhere else.
+    -->
+    <Match>
+        <Class name="com.onderogluserdar.ticketing.audit.AuditService"/>
+        <Bug pattern="SERVLET_HEADER_USER_AGENT"/>
+    </Match>
+
+    <!--
+        Constructor-injected Spring singletons cannot be defensively copied, so EI_EXPOSE_REP2 has no
+        available remedy here. Matched by field name rather than globally, so genuine cases such as a
+        DTO storing a caller-supplied collection are still reported.
+    -->
+    <Match>
+        <Field name="audit"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
 </FindBugsFilter>
