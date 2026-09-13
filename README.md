@@ -162,6 +162,16 @@ authentication, 5 event, 3 reservation.**
 Only `health`, `info` and `metrics` are exposed. See
 [security.md](docs/security.md) for the complete access policy.
 
+## Postman collection
+
+A reviewer-oriented Postman collection is available at
+[`postman/secure-ticketing-api.postman_collection.json`](postman/secure-ticketing-api.postman_collection.json).
+
+Start the application with the `dev` profile, import the collection, and run the folders from top to
+bottom. It uses `http://localhost:8080` by default, logs in with the seeded development users,
+captures tokens and created resource IDs automatically, and includes the idempotent reservation
+replay and representative authorization checks.
+
 ## Architecture decisions at a glance
 
 - **Feature-oriented layered monolith**, not hexagonal — no ports, adapters or mappers without a
