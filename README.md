@@ -47,7 +47,7 @@ openssl rand -base64 48   # paste the output as JWT_SECRET
 **2. Start PostgreSQL.**
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
 ```
 
 **3. Run the application** with the `dev` profile, which seeds one user per role.
@@ -61,6 +61,18 @@ docker compose up -d
 ```bash
 curl http://localhost:8080/actuator/health
 ```
+
+### Run the full stack with Docker
+
+Instead of steps 2 and 3, the application and PostgreSQL can run together. The same `.env` supplies
+the credentials, so create it first as in step 1.
+
+```bash
+docker compose up --build
+```
+
+Compose waits for PostgreSQL to report healthy, then starts the application on
+<http://localhost:8080> with the `dev` profile. `docker compose down` stops both.
 
 ## Seed users
 

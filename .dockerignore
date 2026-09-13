@@ -1,0 +1,8 @@
+.git
+.github
+.env
+target
+docs
+postman
+.DS_Store
+**/.DS_Store
