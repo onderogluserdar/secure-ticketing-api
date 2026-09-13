@@ -1,6 +1,7 @@
 package com.onderogluserdar.ticketing.common.error;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -29,9 +30,13 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception exception) {
-        log.error("Unhandled failure", exception);
-        return ProblemDetails.of(
+        String errorId = UUID.randomUUID().toString();
+        log.error("Unhandled failure errorId={}", errorId, exception);
+
+        ProblemDetail problem = ProblemDetails.of(
                 HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, "the request could not be processed");
+        problem.setProperty("errorId", errorId);
+        return problem;
     }
 
     @Override

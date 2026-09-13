@@ -26,6 +26,8 @@ import com.onderogluserdar.ticketing.user.Role;
 import com.onderogluserdar.ticketing.user.User;
 import com.onderogluserdar.ticketing.user.UserRepository;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * Capacity is far above the attempt count on purpose: if capacity were the binding constraint the
  * Event lock could make this pass without idempotency doing anything.
@@ -49,6 +51,9 @@ class IdempotencyConcurrencyPostgresTest extends PostgresTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private MeterRegistry meters;
+
     @Test
     void twentySimultaneousDuplicatesCreateExactlyOneReservation() throws Exception {
         jdbc.sql("delete from idempotency_keys").update();
@@ -56,6 +61,8 @@ class IdempotencyConcurrencyPostgresTest extends PostgresTest {
                 User.create(UUID.randomUUID() + "@example.com", "$2a$12$h", Set.of(Role.CUSTOMER), Instant.now()));
         CurrentUser caller = new CurrentUser(customer.getId(), Set.of(Role.CUSTOMER));
         UUID eventId = publishedEvent();
+        double createdBefore = counter("ticketing.reservation.created");
+        double replaysBefore = counter("ticketing.idempotency.replay");
 
         CountDownLatch ready = new CountDownLatch(ATTEMPTS);
         CountDownLatch start = new CountDownLatch(1);
@@ -120,6 +127,18 @@ class IdempotencyConcurrencyPostgresTest extends PostgresTest {
                         .single())
                 .as("one key row owns the scope")
                 .isEqualTo(1);
+
+        // The losers of the unique-key race are replays, not creations, even under real contention.
+        assertThat(counter("ticketing.reservation.created") - createdBefore)
+                .as("one commit, one count")
+                .isEqualTo(1);
+        assertThat(counter("ticketing.idempotency.replay") - replaysBefore)
+                .as("every other caller was answered from the stored result")
+                .isEqualTo(ATTEMPTS - 1);
+    }
+
+    private double counter(String name) {
+        return meters.get(name).counter().count();
     }
 
     private UUID publishedEvent() {

@@ -12,6 +12,7 @@ import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.idempotency.IdempotencyKey;
 import com.onderogluserdar.ticketing.idempotency.IdempotencyKeyRepository;
+import com.onderogluserdar.ticketing.observability.TicketingMetrics;
 import com.onderogluserdar.ticketing.reservation.dto.ReservationResponse;
 import com.onderogluserdar.ticketing.security.CurrentUser;
 
@@ -29,12 +30,17 @@ public class IdempotentReservationService {
     private final IdempotencyKeyRepository keys;
     private final ReservationTransaction transaction;
     private final ObjectMapper objectMapper;
+    private final TicketingMetrics metrics;
 
     IdempotentReservationService(
-            IdempotencyKeyRepository keys, ReservationTransaction transaction, ObjectMapper objectMapper) {
+            IdempotencyKeyRepository keys,
+            ReservationTransaction transaction,
+            ObjectMapper objectMapper,
+            TicketingMetrics metrics) {
         this.keys = keys;
         this.transaction = transaction;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     public record Outcome(int status, ReservationResponse response) {}
@@ -49,8 +55,10 @@ public class IdempotentReservationService {
         }
 
         try {
-            return transaction.claimAndReserve(
+            Outcome created = transaction.claimAndReserve(
                     caller, ENDPOINT, idempotencyKey, requestHash, TIME_TO_LIVE, eventId, seats);
+            metrics.reservationCreated();
+            return created;
         } catch (DataIntegrityViolationException raceOrRealFailure) {
             IdempotencyKey winner = keys.findByUserIdAndEndpointAndIdempotencyKey(caller.id(), ENDPOINT, idempotencyKey)
                     .orElseThrow(() -> raceOrRealFailure);
@@ -77,8 +85,10 @@ public class IdempotentReservationService {
             throw new BusinessException(
                     ErrorCode.IDEMPOTENCY_KEY_CONFLICT, "this Idempotency-Key is still being processed");
         }
-        return new Outcome(
+        Outcome replayed = new Outcome(
                 known.getResponseStatus(), objectMapper.readValue(known.getResponseBody(), ReservationResponse.class));
+        metrics.idempotencyReplayed();
+        return replayed;
     }
 
     private static String requestHash(UUID eventId, int seats) {

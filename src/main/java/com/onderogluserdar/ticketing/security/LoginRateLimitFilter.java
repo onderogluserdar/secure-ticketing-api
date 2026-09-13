@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.common.error.ProblemDetails;
+import com.onderogluserdar.ticketing.observability.TicketingMetrics;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
@@ -39,10 +40,12 @@ class LoginRateLimitFilter extends OncePerRequestFilter {
     private final Map<String, Bucket> bucketsByClient = new ConcurrentHashMap<>();
     private final LoginRateLimitProperties properties;
     private final ObjectMapper objectMapper;
+    private final TicketingMetrics metrics;
 
-    LoginRateLimitFilter(LoginRateLimitProperties properties, ObjectMapper objectMapper) {
+    LoginRateLimitFilter(LoginRateLimitProperties properties, ObjectMapper objectMapper, TicketingMetrics metrics) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     @Override
@@ -61,6 +64,7 @@ class LoginRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
+        metrics.rateLimitRejected();
         response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(secondsUntilRefill(probe)));
         ProblemDetails.write(
                 response,

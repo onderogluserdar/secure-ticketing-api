@@ -3,7 +3,7 @@ spring:
     name: secure-ticketing-api
 
   config:
-    import: optional:file:.env[.properties]
+    import: optional:file:.env[.properties],classpath:observability.yml
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ticketing}

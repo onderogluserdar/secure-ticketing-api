@@ -27,8 +27,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jayway.jsonpath.JsonPath;
 import com.onderogluserdar.ticketing.event.EventRepository;
 import com.onderogluserdar.ticketing.security.JwtService;
+import com.onderogluserdar.ticketing.support.LogCapture;
 import com.onderogluserdar.ticketing.user.Role;
 import com.onderogluserdar.ticketing.user.User;
 import com.onderogluserdar.ticketing.user.UserRepository;
@@ -125,15 +127,21 @@ class ErrorContractTest {
                 .when(events)
                 .save(any());
 
-        String body = mockMvc.perform(post("/api/events")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + organizerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(VALID_EVENT))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        String body;
+        String loggedErrors;
+        try (LogCapture logs = LogCapture.attach()) {
+            body = mockMvc.perform(post("/api/events")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + organizerToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(VALID_EVENT))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                    .andExpect(jsonPath("$.errorId").exists())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+            loggedErrors = logs.errorText();
+        }
 
         assertThat(body)
                 .doesNotContain("SQL")
@@ -141,6 +149,11 @@ class ErrorContractTest {
                 .doesNotContain("constraint")
                 .doesNotContain("DataIntegrityViolation")
                 .doesNotContain("com.onderogluserdar");
+
+        // The error id is the only thing tying this sanitized body to the server-side stack trace.
+        String errorId = JsonPath.read(body, "$.errorId");
+        assertThat(UUID.fromString(errorId)).hasToString(errorId);
+        assertThat(loggedErrors).contains(errorId).contains("violates unique constraint");
     }
 
     private User persistUser(Role role) {

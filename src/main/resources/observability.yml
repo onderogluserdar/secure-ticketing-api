@@ -1,0 +1,19 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only these three are reachable over HTTP; every other endpoint stays unmapped.
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  info:
+    env:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

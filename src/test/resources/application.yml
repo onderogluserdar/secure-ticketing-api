@@ -2,6 +2,10 @@ spring:
   application:
     name: secure-ticketing-api
 
+  config:
+    # The real exposure policy, not a copy of it.
+    import: classpath:observability.yml
+
   datasource:
     url: jdbc:h2:mem:ticketing;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
 

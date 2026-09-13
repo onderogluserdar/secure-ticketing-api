@@ -16,6 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import com.onderogluserdar.ticketing.support.LogCapture;
+
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * A tiny bucket rather than a real refill wait, so nothing here sleeps. Each test uses its own
  * client address, which both isolates the buckets and demonstrates that the key is the client IP.
@@ -28,6 +32,27 @@ class LoginRateLimitTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private MeterRegistry registry;
+
+    @Test
+    void countsARejectionWithoutTurningItIntoAnApplicationError() throws Exception {
+        String email = register("counted", "10.0.0.9");
+        double before = registry.get("ticketing.rate.limit.rejected").counter().count();
+
+        try (LogCapture logs = LogCapture.attach()) {
+            mockMvc.perform(login(email, PASSWORD, "10.0.0.9")).andExpect(status().isOk());
+            mockMvc.perform(login(email, PASSWORD, "10.0.0.9")).andExpect(status().isOk());
+            mockMvc.perform(login(email, PASSWORD, "10.0.0.9")).andExpect(status().isTooManyRequests());
+
+            // Being rate limited is an expected outcome; it must not fill the error log on demand.
+            assertThat(logs.errors()).isEmpty();
+        }
+
+        assertThat(registry.get("ticketing.rate.limit.rejected").counter().count() - before)
+                .isEqualTo(1);
+    }
 
     @Test
     void allowsRequestsWithinTheAllowanceAndRejectsTheNextOne() throws Exception {

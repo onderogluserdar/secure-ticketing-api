@@ -12,6 +12,7 @@ import com.onderogluserdar.ticketing.common.error.BusinessException;
 import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.event.Event;
 import com.onderogluserdar.ticketing.event.EventRepository;
+import com.onderogluserdar.ticketing.observability.TicketingMetrics;
 import com.onderogluserdar.ticketing.security.CurrentUser;
 
 /**
@@ -24,11 +25,14 @@ public class ReservationService {
     private final ReservationRepository reservations;
     private final EventRepository events;
     private final AuditService audit;
+    private final TicketingMetrics metrics;
 
-    public ReservationService(ReservationRepository reservations, EventRepository events, AuditService audit) {
+    public ReservationService(
+            ReservationRepository reservations, EventRepository events, AuditService audit, TicketingMetrics metrics) {
         this.reservations = reservations;
         this.events = events;
         this.audit = audit;
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -37,7 +41,14 @@ public class ReservationService {
                 .orElseThrow(() ->
                         new BusinessException(ErrorCode.EVENT_NOT_FOUND, "event %s does not exist".formatted(eventId)));
 
-        event.ensureCanAccommodate(seats, reservations.activeSeatsFor(eventId));
+        try {
+            event.ensureCanAccommodate(seats, reservations.activeSeatsFor(eventId));
+        } catch (BusinessException rejected) {
+            if (rejected.getErrorCode() == ErrorCode.INSUFFICIENT_CAPACITY) {
+                metrics.reservationRejectedForCapacity();
+            }
+            throw rejected;
+        }
 
         Reservation created = reservations.save(Reservation.createPending(eventId, caller.id(), seats, Instant.now()));
         audit.record(AuditAction.RESERVATION_CREATED, caller.id(), "Reservation", created.getId());

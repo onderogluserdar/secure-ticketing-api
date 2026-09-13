@@ -46,4 +46,15 @@
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
 
+    <!--
+        The detector flags any value interpolated into a log message, but the only parameter here is a
+        locally generated UUID, whose characters are hex digits and hyphens. Nothing from the request
+        reaches this message. Scoped to the one method so log forging is still reported elsewhere.
+    -->
+    <Match>
+        <Class name="com.onderogluserdar.ticketing.common.error.GlobalExceptionHandler"/>
+        <Method name="handleUnexpected"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
 </FindBugsFilter>
