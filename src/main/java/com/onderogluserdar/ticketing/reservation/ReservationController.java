@@ -37,8 +37,7 @@ class ReservationController {
 
     @Operation(
             summary = "Reserve seats",
-            description = "Requires Idempotency-Key. Repeating the same key and payload replays the"
-                    + " original result")
+            description = "Requires Idempotency-Key. The same key and payload replays the original result.")
     @ApiResponse(responseCode = "201", description = "Created, or the replayed original result")
     @ApiResponse(
             responseCode = "400",
