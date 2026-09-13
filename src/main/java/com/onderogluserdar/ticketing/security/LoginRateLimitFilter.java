@@ -20,10 +20,8 @@ import com.onderogluserdar.ticketing.common.error.ErrorCode;
 import com.onderogluserdar.ticketing.common.error.ProblemDetails;
 import com.onderogluserdar.ticketing.observability.TicketingMetrics;
 
-import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -77,8 +75,8 @@ class LoginRateLimitFilter extends OncePerRequestFilter {
 
     private Bucket newBucket() {
         return Bucket.builder()
-                .addLimit(Bandwidth.classic(
-                        properties.capacity(), Refill.greedy(properties.capacity(), properties.refillPeriod())))
+                .addLimit(limit -> limit.capacity(properties.capacity())
+                        .refillGreedy(properties.capacity(), properties.refillPeriod()))
                 .build();
     }
 
